@@ -552,141 +552,23 @@ class UserDefinedForm_Controller extends Page_Controller {
 	 * Get the form for the page. Form can be modified by calling {@link updateForm()}
 	 * on a UserDefinedForm extension.
 	 *
-	 * @return Form|false
+	 * @return Forms
 	 */
 	public function Form() {
-		$fields = $this->getFormFields();
-		if(!$fields || !$fields->exists()) return false;
-		
-		$actions = $this->getFormActions();
-		
-		// get the required fields including the validation
-		$required = $this->getRequiredFields();
+		$form = UserForm::create($this);
 
-		// generate the conditional logic 
 		$this->generateConditionalJavascript();
-
-		$form = new Form($this, "Form", $fields, $actions, $required);
-		$form->setRedirectToFormOnValidationError(true);
-		
-		$data = Session::get("FormInfo.{$form->FormName()}.data");
-		
-		if(is_array($data)) $form->loadDataFrom($data);
-		
-		$this->extend('updateForm', $form);
-
-		if($this->DisableCsrfSecurityToken) {
-			$form->disableSecurityToken();
-		}
-
 		$this->generateValidationJavascript($form);
-		
+
 		return $form;
-	}
-
-	/**
-	 * Get the form fields for the form on this page. Can modify this FieldSet
-	 * by using {@link updateFormFields()} on an {@link Extension} subclass which
-	 * is applied to this controller.
-	 *
-	 * @return FieldList
-	 */
-	public function getFormFields() {
-		$fields = new FieldList();
-
-		$editableFields = $this->Fields();
-		if($editableFields) foreach($editableFields as $editableField) {
-			// get the raw form field from the editable version
-			$field = $editableField->getFormField();
-			if(!$field) break;
-
-			// set the error / formatting messages
-			$field->setCustomValidationMessage($editableField->getErrorMessage());
-
-			// set the right title on this field
-			if($right = $editableField->getSetting('RightTitle')) {
-				// Since this field expects raw html, safely escape the user data prior
-				$field->setRightTitle(Convert::raw2xml($right));
-			}
-
-			// if this field is required add some
-			if($editableField->Required) {
-				$field->addExtraClass('requiredField');
-
-				if($identifier = UserDefinedForm::config()->required_identifier) {
-
-					$title = $field->Title() ." <span class='required-identifier'>". $identifier . "</span>";
-					$field->setTitle($title);
-				}
-			}
-			// if this field has an extra class
-			if($extraClass = $editableField->getSetting('ExtraClass')) {
-				$field->addExtraClass(Convert::raw2att($extraClass));
-			}
-
-			// set the values passed by the url to the field
-			$request = $this->getRequest();
-			if($value = $request->getVar($field->getName())) {
-				$field->setValue($value);
-			}
-
-			$fields->push($field);
-		}
-		$this->extend('updateFormFields', $fields);
-
-		return $fields;
-	}
-	
-	/**
-	 * Generate the form actions for the UserDefinedForm. You 
-	 * can manipulate these by using {@link updateFormActions()} on
-	 * a decorator.
-	 *
-	 * @todo Make form actions editable via their own field editor.
-	 *
-	 * @return FieldList
-	 */
-	public function getFormActions() {
-		$submitText = ($this->SubmitButtonText) ? $this->SubmitButtonText : _t('UserDefinedForm.SUBMITBUTTON', 'Submit');
-		$clearText = ($this->ClearButtonText) ? $this->ClearButtonText : _t('UserDefinedForm.CLEARBUTTON', 'Clear');
-		
-		$actions = new FieldList(
-			new FormAction("process", $submitText)
-		);
-
-		if($this->ShowClearButton) {
-			$actions->push(new ResetFormAction("clearForm", $clearText));
-		}
-		
-		$this->extend('updateFormActions', $actions);
-		
-		return $actions;
-	}
-	
-	/**
-	 * Get the required form fields for this form.
-	 *
-	 * @return RequiredFields
-	 */
-	public function getRequiredFields() {
-		// Generate required field validator
-		$requiredNames = $this
-			->Fields()
-			->filter('Required', true)
-			->column('Name');
-		$required = new RequiredFields($requiredNames);
-		
-		$this->extend('updateRequiredFields', $required);
-		
-		return $required;
 	}
 
 	/**
 	 * Build jQuery validation script and require as a custom script
 	 * 
-	 * @param Form $form
+	 * @param UserForm $form
 	 */
-	public function generateValidationJavascript($form) {
+	public function generateValidationJavascript(UserForm $form) {
 		// set the custom script for this form
 		Requirements::customScript(
 			$this
@@ -902,27 +784,7 @@ JS
 , 'UserFormsConditional');
 		}
 	}
-	
-	/**
-	 * Convert a PHP array to a JSON string. We cannot use {@link Convert::array2json}
-	 * as it escapes our values with "" which appears to break the validate plugin
-	 *
-	 * @param Array array to convert
-	 * @return JSON 
-	 */
-	public function array2json($array) {
-		foreach($array as $key => $value) {
-			if(is_array( $value )) {
-				$result[] = "$key:" . $this->array2json($value);
-			} else {
-				$value = ( is_bool($value) || is_numeric($value) ) ? $value : "\"$value\"";
-				$result[] = "$key:$value";
-			}
-		}
 
-		return (isset($result)) ? "{\n".implode( ', ', $result ) ."\n}\n": '{}';
-	}
-	
 	/**
 	 * Process the form that is submitted through the site
 	 * 
@@ -934,7 +796,7 @@ JS
 	public function process($data, $form) {
 		Session::set("FormInfo.{$form->FormName()}.data",$data);
 		Session::clear("FormInfo.{$form->FormName()}.errors");
-		
+
 		foreach($this->Fields() as $field) {
 			$messages[$field->Name] = $field->getErrorMessage()->HTML();
 			$formField = $field->getFormField();
@@ -953,13 +815,13 @@ JS
 				}
 			}
 		}
-		
+
 		if(Session::get("FormInfo.{$form->FormName()}.errors")){
 			Controller::curr()->redirectBack();
 
 			return;
 		}
-		
+
 		$submittedForm = Object::create('SubmittedForm');
 		$submittedForm->SubmittedByID = ($id = Member::currentUserID()) ? $id : 0;
 		$submittedForm->ParentID = $this->ID;
@@ -968,22 +830,22 @@ JS
 		if(!$this->DisableSaveSubmissions) {
 			$submittedForm->write();
 		}
-		
+
 		$values = array();
 		$attachments = array();
 
 		$submittedFields = new ArrayList();
-		
+
 		foreach($this->Fields() as $field) {
 			if(!$field->showInReports()) {
 				continue;
 			}
-			
+
 			$submittedField = $field->getSubmittedFormField();
 			$submittedField->ParentID = $submittedForm->ID;
 			$submittedField->Name = $field->Name;
 			$submittedField->Title = $field->getField('Title');
-			
+
 			// save the value from the data
 			if($field->hasMethod('getValueFromData')) {
 				$submittedField->Value = $field->getValueFromData($data);
@@ -1021,23 +883,23 @@ JS
 					}
 				}
 			}
-			
+
 			$submittedField->extend('onPopulationFromField', $field);
 			
 			if(!$this->DisableSaveSubmissions) {
 				$submittedField->write();
 			}
-	
+
 			$submittedFields->push($submittedField);
 		}
-		
+
 		$emailData = array(
 			"Sender" => Member::currentUser(),
 			"Fields" => $submittedFields
 		);
-		
+
 		$this->extend('updateEmailData', $emailData, $attachments);
-		
+
 		// email users on submit.
 		if($recipients = $this->FilteredEmailRecipients($data, $form)) {
 			$email = new UserDefinedForm_SubmittedFormEmail($submittedFields); 
@@ -1117,14 +979,13 @@ JS
 				}
 			}
 		}
-		
+
 		$submittedForm->extend('updateAfterProcess');
 
 		Session::clear("FormInfo.{$form->FormName()}.errors");
 		Session::clear("FormInfo.{$form->FormName()}.data");
 		
 		$referrer = (isset($data['Referrer'])) ? '?referrer=' . urlencode($data['Referrer']) : "";
-
 
 		// set a session variable from the security ID to stop people accessing 
 		// the finished method directly.
@@ -1142,7 +1003,7 @@ JS
 				}
 			}
 		}
-		
+
 		if(!$this->DisableSaveSubmissions) {
 			Session::set('userformssubmission'. $this->ID, $submittedForm->ID);
 		}
@@ -1164,6 +1025,26 @@ JS
 		}
 
 		return $data;
+	}
+
+	/**
+	 * Convert a PHP array to a JSON string. We cannot use {@link Convert::array2json}
+	 * as it escapes our values with "" which appears to break the validate plugin
+	 *
+	 * @param Array array to convert
+	 * @return JSON 
+	 */
+	public function array2json($array) {
+		foreach($array as $key => $value) {
+			if(is_array( $value )) {
+				$result[] = "$key:" . $this->array2json($value);
+			} else {
+				$value = ( is_bool($value) || is_numeric($value) ) ? $value : "\"$value\"";
+				$result[] = "$key:$value";
+			}
+		}
+
+		return (isset($result)) ? "{\n".implode( ', ', $result ) ."\n}\n": '{}';
 	}
 
 	/**
