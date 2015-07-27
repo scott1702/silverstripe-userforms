@@ -7,3 +7,15 @@ LeftAndMain:
 
   extra_requirements_css:
     - userforms/css/FieldEditor.css
+
+UserDefinedForm:
+  extensions:
+    - UserFormFieldEditorExtension
+
+EditableFormField:
+  extensions:
+    - 'Versioned("Stage", "Live")'
+
+EditableCustomRule:
+  extensions:
+    - 'Versioned("Stage", "Live")'
