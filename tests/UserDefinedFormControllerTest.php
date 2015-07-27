@@ -164,8 +164,7 @@ class UserDefinedFormControllerTest extends FunctionalTest {
 	function testArrayToJson() {
 		$array = array('1' => 'one', '2' => 'two');
 		$string = "{\n1:\"one\", 2:\"two\"\n}\n";
-		$form = new UserDefinedFormControllerTest_Controller();
-		$this->assertEquals($form->array2json($array), $string);
+		$this->assertEquals(Convert::array2json($array), $string);
 	}
 	
 	

@@ -20,6 +20,15 @@ class UserDefinedForm extends Page {
 	 * @var string
 	 */
 	private static $email_template_directory = 'userforms/templates/email/';
+
+	/**
+	 * Built in extensions required by this page
+	 * @config
+	 * @var array
+	 */
+	private static $extensions = array(
+		'UserFormFieldEditorExtension'
+	);
 	
 	/**
 	 * @var array Fields on the user defined form page.
@@ -786,26 +795,6 @@ JS
 		}
 
 		return $data;
-	}
-
-	/**
-	 * Convert a PHP array to a JSON string. We cannot use {@link Convert::array2json}
-	 * as it escapes our values with "" which appears to break the validate plugin
-	 *
-	 * @param Array array to convert
-	 * @return JSON 
-	 */
-	public function array2json($array) {
-		foreach($array as $key => $value) {
-			if(is_array( $value )) {
-				$result[] = "$key:" . $this->array2json($value);
-			} else {
-				$value = ( is_bool($value) || is_numeric($value) ) ? $value : "\"$value\"";
-				$result[] = "$key:$value";
-			}
-		}
-
-		return (isset($result)) ? "{\n".implode( ', ', $result ) ."\n}\n": '{}';
 	}
 
 	/**

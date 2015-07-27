@@ -7,8 +7,14 @@
  */
 
 class EditableFormField extends DataObject {
-	
-	private static $default_sort = "Sort";
+
+	/**
+	 * Default sort order
+	 *
+	 * @config
+	 * @var string
+	 */
+	private static $default_sort = '"Sort"';
 	
 	/**
 	 * A list of CSS classes that can be added
@@ -18,6 +24,7 @@ class EditableFormField extends DataObject {
 	public static $allowed_css = array();
 
 	/**
+	 * @config
 	 * @var array
 	 */
 	private static $summary_fields = array(
@@ -25,6 +32,7 @@ class EditableFormField extends DataObject {
 	);
 
 	/**
+	 * @config
 	 * @var array
 	 */
 	private static $db = array(
@@ -38,6 +46,7 @@ class EditableFormField extends DataObject {
 	);
 
 	/**
+	 * @config
 	 * @var array
 	 */
 	private static $has_one = array(
@@ -45,10 +54,21 @@ class EditableFormField extends DataObject {
 	);
 
 	/**
+	 * Built in extensions required
+	 *
+	 * @config
+	 * @var array
+	 */
+	private static $extensions = array(
+		"Versioned('Stage', 'Live')"
+	);
+
+	/**
+	 * @config
 	 * @var array
 	 */
 	private static $has_many = array(
-		"CustomRules" => "EditableCustomRule"
+		"CustomRules" => "EditableCustomRule.Parent"
 	);
 
 	/**
@@ -122,11 +142,6 @@ class EditableFormField extends DataObject {
 		/*
 		 * Custom rules
 		 */
-		$customRulesGrid = GridField::create(
-			'CustomRules',
-			_t('EditableFormField.CUSTOMRULES', 'Custom Rules'),
-			$this->CustomRules()
-		);
 
 		$customRulesConfig = GridFieldConfig::create()
 			->addComponents(
@@ -149,8 +164,6 @@ class EditableFormField extends DataObject {
 					},
 					'ConditionOption' => function($record, $column, $grid) {
 						$options = Config::inst()->get('EditableCustomRule', 'condition_options');
-						$options = array_combine($options, $options);
-
 						return DropdownField::create($column, '', $options);
 					},
 					'FieldValue' => function($record, $column, $grid) {
@@ -167,7 +180,13 @@ class EditableFormField extends DataObject {
 				new GridState_Component()
 			);
 
-		$customRulesGrid->setConfig($customRulesConfig);
+
+		$customRulesGrid = GridField::create(
+			'CustomRules',
+			_t('EditableFormField.CUSTOMRULES', 'Custom Rules'),
+			$this->CustomRules(),
+			$customRulesConfig
+		);
 
 		$fields->addFieldToTab('Root.CustomRules', $customRulesGrid);
 
