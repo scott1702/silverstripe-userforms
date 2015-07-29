@@ -211,11 +211,11 @@ class EditableFormField extends DataObject {
 			);
 		} else {
 			$fields->addFieldToTab('Root.Main',
-				new TextField(
+				TextField::create(
 					$this->getSettingName('ExtraClass'), 
-					_t('EditableFormField.EXTRACLASSB', 'Extra CSS class - separate multiples with a space'), 
+					_t('EditableFormField.EXTRACLASSB', 'Extra CSS class'), 
 					$extraClass
-				)
+				)->setDescription('separate multiple classes with a space')
 			);
 		}
 

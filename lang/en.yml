@@ -47,7 +47,7 @@ en:
     DRAG: 'Drag to rearrange order of fields'
     ENTERQUESTION: 'Enter Question'
     EXTRACLASSA: 'Extra Styling/Layout'
-    EXTRACLASSB: 'Extra css Class - separate multiples with a space'
+    EXTRACLASSB: 'Extra css Class'
     FIELDCONFIGURATION: 'Field Configuration'
     FIELDONDEFAULT: 'Field On Default'
     GREATERTHAN: 'Value Greater Than'

@@ -1,0 +1,76 @@
+/**
+ * User Defined Form Builder CSS
+ *
+ */
+li.class-UserDefinedForm > a .jstree-pageicon { background-position: 0 -64px; }
+
+.page-icon.class-UserDefinedForm {
+	background-position: 0 -64px;
+}
+
+/* Add a Field Menu 
+---------------------------------------- */
+.MenuHolder {
+	color: #999;
+	border: 1px solid #ddd;
+	background: #f4f4f4;
+	overflow: hidden;
+	width: 100%;
+
+	h2 {
+		float: left;
+		margin-left: 10px;
+	}
+
+	select {
+		float: left;
+		width: 240px;
+		margin: 18px 0 0 8px;
+		font-size: 11px;
+	}
+
+	.action {
+		float: left;
+		margin: 14px 0 0 4px;
+		font-size: 11px;
+	}
+}
+	
+/* Options / Settings Area 
+---------------------------------------- */
+.FormOptions {
+	padding: 10px 0 0 0;
+}
+
+/* Email Recipient Form
+---------------------------------------- */
+.EmailRecipientForm {
+	.fieldgroup .fieldgroup-field {
+		padding-top: 0;
+
+		&.last {
+			padding-bottom: 0;
+		}
+	}
+
+	.ss-ui-button {
+		margin-bottom: 4px;
+	}
+}
+
+/* Field Editor
+---------------------------------------- */
+#Form_ItemEditForm .cms-content-fields {
+	.fieldgroup-field {
+		width: 100%;
+		max-width: 246px;
+
+		&.last input {
+			margin-left: 12px;
+		}
+	}
+
+	.fieldholder-small-label {
+		position: absolute;
+	}
+}
