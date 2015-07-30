@@ -9,24 +9,34 @@
 class EditableCustomRule extends DataObject {
 
 	private static $condition_options = array(
-		'IsBlank',
-		'IsNotBlank',
-		'HasValue',
-		'ValueNot',
-		'ValueLessThan',
-		'ValueLessThanEqual',
-		'ValueGreaterThan',
-		'ValueGreaterThanEqual'
+		"IsBlank" => "Is blank",
+		"IsNotBlank" => "Is not blank",
+		"HasValue" => "Equals",
+		"ValueNot" => "Doesn't equal",
+		"ValueLessThan" => "Less than",
+		"ValueLessThanEqual" => "Less than or equal",
+		"ValueGreaterThan" => "Greater than",
+		"ValueGreaterThanEqual" => "Greater than or equal"
 	);
 
 	private static $db = array(
-		'Display' => 'Enum("Show, Hide")',
-		'ConditionFieldID' => 'Int',
-		'ConditionOption' => 'Varchar',
+		'Display' => 'Enum("Show,Hide")',
+		'ConditionOption' => 'Enum("IsBlank,IsNotBlank,HasValue,ValueNot,ValueLessThan,ValueLessThanEqual,ValueGreaterThan,ValueGreaterThanEqual")',
 		'FieldValue' => 'Varchar'
 	);
 
 	private static $has_one = array(
-		'Parent' => 'EditableFormField'
+		'Parent' => 'EditableFormField',
+		'ConditionField' => 'EditableFormField'
+	);
+
+	/**
+	 * Built in extensions required
+	 *
+	 * @config
+	 * @var array
+	 */
+	private static $extensions = array(
+		"Versioned('Stage', 'Live')"
 	);
 }
