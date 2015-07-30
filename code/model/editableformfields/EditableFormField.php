@@ -316,6 +316,11 @@ class EditableFormField extends DataObject {
 	 */
 	public function doPublish($fromStage, $toStage, $createNewVersion = false) {
 		$this->publish($fromStage, $toStage, $createNewVersion);
+
+		// Don't forget to publish the related custom rules...
+		foreach ($this->CustomRules() as $rule) {
+			$rule->doPublish($fromStage, $toStage, $createNewVersion);
+		}
 	}
 	
 	/**
@@ -325,6 +330,11 @@ class EditableFormField extends DataObject {
 	 */
 	public function doDeleteFromStage($stage) {
 		$this->deleteFromStage($stage);
+
+		// Don't forget to delete the related custom rules...
+		foreach ($this->CustomRules() as $rule) {
+			$rule->deleteFromStage($stage);
+		}
 	}
 	
 	/**
