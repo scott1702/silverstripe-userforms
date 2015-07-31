@@ -597,4 +597,32 @@ class EditableFormField extends DataObject {
 		
 		return DBField::create_field('Varchar', $errorMessage);
 	}
+
+	/**
+	 * Validate the field taking into account its custom rules.
+	 *
+	 * @param Array $data
+	 * @param UserForm $form
+	 *
+	 * @return boolean
+	 */
+	public function validateField($data, $form) {
+		if($this->Required && $this->CustomRules()->Count() == 0) {
+			$formField = $this->getFormField();
+
+			if(isset($data[$this->Name])) {
+				$formField->setValue($data[$this->Name]);
+			}
+
+			if(
+				!isset($data[$this->Name]) || 
+				!$data[$this->Name] ||
+				!$formField->validate($form->getValidator())
+			) {
+				$form->addErrorMessage($this->Name, $this->getErrorMessage(), 'bad');
+			}
+		}
+
+		return true;
+	}
 }

@@ -142,7 +142,6 @@ class UserFormFieldEditorExtension extends DataExtension {
 			foreach ($field->CustomRules() as $customRule) {
 				$newRule = $customRule->duplicate();
 				$newRule->ParentID = $newField->ID;
-				// TODO: Update the rule's ConditionFieldID
 				$newRule->write();
 			}
 		}

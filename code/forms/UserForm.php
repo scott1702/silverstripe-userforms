@@ -29,7 +29,7 @@ class UserForm extends Form {
 		$data = Session::get("FormInfo.{$this->FormName()}.data");
 
 		if(is_array($data)) {
-			$form->loadDataFrom($data);
+			$this->loadDataFrom($data);
 		}
 
 		$this->extend('updateForm');
@@ -132,5 +132,27 @@ class UserForm extends Form {
 		$this->extend('updateRequiredFields', $required);
 
 		return $required;
+	}
+
+	/**
+	 * Override validation so conditional fields can be validated correctly.
+	 *
+	 * @return boolean
+	 */
+	public function validate() {
+		$data = $this->getData();
+
+		Session::set("FormInfo.{$this->FormName()}.data", $data);
+		Session::clear("FormInfo.{$this->FormName()}.errors");
+
+		foreach ($this->controller->Fields() as $key => $field) {
+			$field->validateField($data, $this);
+		}
+
+		if(Session::get("FormInfo.{$this->FormName()}.errors")) {
+			return false;
+		}
+
+		return true;
 	}
 }
