@@ -250,12 +250,10 @@ class EditableFormField extends DataObject {
 
 		$this->setSettings($settings);
 
-		if(!$this->Sort) {
+		if(!isset($this->Sort)) {
 			$parentID = ($this->ParentID) ? $this->ParentID : 0;
 
-			$this->Sort = DB::query(
-				sprintf("SELECT MAX(\"Sort\") + 1 FROM \"EditableFormField\" WHERE \"ParentID\" = %d", $parentID)
-			)->value();
+			$this->Sort = EditableFormField::get()->filter('ParentID', $parentID)->max('Sort') + 1;
 		}
 	}
 
