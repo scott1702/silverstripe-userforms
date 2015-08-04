@@ -46,11 +46,15 @@ class EditableFormField extends DataObject {
 	);
 
 	/**
+	 * Having a UserDefinedForm and a EditableFormStep relation allows
+	 * us to have condition rules that span multiple steps.
+	 *
 	 * @config
 	 * @var array
 	 */
 	private static $has_one = array(
 		"Parent" => "UserDefinedForm",
+		"Step" => "EditableFormStep"
 	);
 
 	/**
@@ -124,6 +128,13 @@ class EditableFormField extends DataObject {
 					'<span class="readonly">$' . $this->Name . '</span>' .
 				'</div>' .
 			'</div>')),
+			'Title'
+		);
+
+		$fields->insertBefore(DropdownField::create(
+			'StepID',
+			_t('EditableFormField.STEP', 'Step'),
+			$this->Parent()->Fields()->filter('ClassName', 'EditableFormStep')->map('ID', 'Title')),
 			'Title'
 		);
 
@@ -250,10 +261,17 @@ class EditableFormField extends DataObject {
 
 		$this->setSettings($settings);
 
-		if(!isset($this->Sort)) {
-			$parentID = ($this->ParentID) ? $this->ParentID : 0;
+		// If the field has not been assigned a step, set a default, which is the last step.
+		if (!$this->StepID && $this->ClassName != 'EditableFormStep') {
+			$this->StepID = EditableFormStep::get()->sort('Sort', 'DESC')->First()->ID;
+		}
 
-			$this->Sort = EditableFormField::get()->filter('ParentID', $parentID)->max('Sort') + 1;
+		// If there is no sort order, make the field the last item, within it's step.
+		if(!$this->Sort && $this->ClassName != 'EditableFormStep') {
+			$this->Sort = EditableFormField::get()
+				->exclude('ClassName', 'EditableFormStep')
+				->filter('StepID', $this->StepID)
+				->max('Sort') + 2;
 		}
 	}
 

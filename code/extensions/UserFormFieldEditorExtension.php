@@ -32,33 +32,62 @@ class UserFormFieldEditorExtension extends DataExtension {
 	 * @return GridField
 	 */
 	public function getFieldEditorGrid() {
-		$fieldEditor = GridField::create('Fields', _t('UserDefinedForm.FIELDS', 'Fields'), $this->owner->Fields());
+		$fields = $this->owner->Fields();
 
-		$config = GridFieldConfig::create()
-			->addComponents(
-				(new GridFieldEditableColumns())
-					->setDisplayFields(array(
-						'ClassName' => function($record, $column, $grid) {
-							return DropdownField::create($column, '', $this->getEditableFieldClasses());
-						},
-						'Title' => function($record, $column, $grid) {
-							return TextField::create($column, ' ')
-								->setAttribute('placeholder', _t('UserDefinedForm.TITLE', 'Title'));
-						}
-				)),
-				new GridFieldButtonRow(),
-				new GridFieldAddNewInlineButton(),
-				new GridFieldEditButton(),
-				new GridFieldDeleteAction(),
-				new GridFieldToolbarHeader(),
-				new GridFieldOrderableRows('Sort'),
-				new GridState_Component(),
-				new GridFieldDetailForm()
-			);
+		$this->createInitialFormStep();
 
-		$fieldEditor->setConfig($config);
+		$fieldEditor = GridField::create(
+			'Fields',
+			_t('UserDefinedForm.FIELDS', 'Fields'),
+			$fields,
+			GridFieldConfig::create()
+				->addComponents(
+					(new GridFieldEditableColumns())
+						->setDisplayFields(array(
+							'ClassName' => function($record, $column, $grid) {
+								return DropdownField::create($column, '', $this->getEditableFieldClasses());
+							},
+							'Title' => function($record, $column, $grid) {
+								return TextField::create($column, ' ')
+									->setAttribute('placeholder', _t('UserDefinedForm.TITLE', 'Title'));
+							}
+					)),
+					new GridFieldButtonRow(),
+					new GridFieldAddNewInlineButton(),
+					new GridFieldEditButton(),
+					new GridFieldDeleteAction(),
+					new GridFieldToolbarHeader(),
+					new GridFieldOrderableRows('Sort'),
+					new GridState_Component(),
+					new GridFieldDetailForm()
+				)
+		);
 
 		return $fieldEditor;
+	}
+
+	/**
+	 * A UserForm must have at least one step.
+	 * If no steps exist, create an initial step, and put all fields inside it.
+	 *
+	 * @return void
+	 */
+	public function createInitialFormStep() {
+		// If there's already an initial step, do nothing.
+		if ($this->owner->Fields()->filter('ClassName', 'EditableFormStep')->Count()) {
+			return;
+		}
+
+		$step = EditableFormStep::create();
+
+		$step->ParentID = $this->owner->ID;
+		$step->write();
+
+		// Assign each field to the initial step.
+		foreach ($this->owner->Fields()->exclude('ID', $step->ID) as $field) {
+			$field->StepID = $step->ID;
+			$field->write();
+		}
 	}
 
 	/**
