@@ -1,353 +1,245 @@
 /**
- * Javascript required to power the user defined forms.
- * 
- * Rewritten from the prototype FieldEditor and constantly
- * being refactored to be be less specific on the UDF dom.
+ * @file Manages the multi-step navigation.
  */
-(function($) {
-	$(document).ready(function() {
-		/**
-		 * Namespace
-		 */
-		var userforms = userforms || {};
-		
-		/**
-		 * Messages from UserForms are translatable using i18n.
-		 */
-		userforms.messages = {
-			CONFIRM_DELETE_ALL_SUBMISSIONS: 'All submissions will be permanently removed. Continue?',
-			ERROR_CREATING_FIELD: 'Error creating field',
-			ADDING_FIELD: 'Adding new field',
-			ADDED_FIELD: 'Added new field',
-			HIDE_OPTIONS: 'Hide options',
-			SHOW_OPTIONS: 'Show options',
-			ADDING_OPTION: 'Adding option',
-			ADDED_OPTION: 'Added option',
-			ERROR_CREATING_OPTION: 'Error creating option',
-			REMOVED_OPTION: 'Removed option',
-			ADDING_RULE: 'Adding rule'
-		};
-		
-		/**
-		 * Returns a given translatable string from a passed key. Keys
-		 * should be all caps without any spaces.
-		 */
-		userforms.message = function() {
-			en = arguments[1] || userforms.messages[arguments[0]];
-			
-			return ss.i18n._t("UserForms."+ arguments[0], en);
-		};
-		
-		/**
-		 * Update the sortable properties of the form as a function
-		 * since the application will need to refresh the UI dynamically based
-		 * on a number of factors including when the user adds a page or
-		 * swaps between pages
-		 *
-		 */
-		userforms.update = function() {
-			$("#Fields_fields").sortable({
-				handle: '.fieldHandler',
-				cursor: 'pointer',
-				items: 'li.EditableFormField',
-				placeholder: 'removed-form-field',
-				opacity: 0.6,
-				revert: 'true',
-				change : function (event, ui) {
-					$("#Fields_fields").sortable('refreshPositions');
-				},
-				update : function (event, ui) {
-					var sort = 1;
+jQuery(function ($) {
 
-					$("li.EditableFormField").each(function() {
-						$(this).find(".sortHidden").val(sort++);
-					});
-				}
-			});
+	/**
+	 * @func UserForm
+	 * @constructor
+	 * @param object element
+	 * @return object - The UserForm instance.
+	 * @desc The form
+	 */
+	function UserForm(element) {
+		var self = this;
 
-			$(".editableOptions").sortable({
-				handle: '.handle',
-				cursor:'pointer',
-				items: 'li',
-				placeholder: 'removed-form-field',
-					opacity: 0.6,
-				revert: true,
-				change : function (event, ui) {
-					$(this).sortable('refreshPositions');
-				},
-				update : function (event, ui) {
-					var sort = 1;
-					$(".editableOptions li").each(function() {
-						$(this).find(".sortOptionHidden").val(sort++);
-					});
-				}
-			});
-		};
-		
-		userforms.appendToURL = function(url, pathsegmenttobeadded) {
-			var parts = url.match(/([^\?#]*)?(\?[^#]*)?(#.*)?/);
-			for(var i in parts) if(!parts[i]) parts[i] = '';
-			return parts[1] + pathsegmenttobeadded + parts[2] + parts[3];
+		this.$el = element instanceof jQuery ? element : $(element);
+		this.steps = [];
+
+		// Listen for events triggered my form steps.
+		this.$el.on('userform.step.prev', function (e) {
+			self.prevStep();
+		});
+		this.$el.on('userform.step.next', function (e) {
+			self.nextStep();
+		});
+
+		// Listen for events triggered by the progress bar.
+		$('#userform-progress').on('userform.progress.changestep', function (e, stepNumber) {
+			self.jumpToStep(stepNumber - 1);
+		});
+
+		return this;
+	}
+
+	/**
+	 * @func UserForm.addStep
+	 * @param object step - An instance of FormStep.
+	 * @desc Adds a step to the UserForm.
+	 */
+	UserForm.prototype.addStep = function (step) {
+		// Make sure we're dealing with a form step.
+		if (!step instanceof FormStep) {
+			return;
 		}
 
-		/**
-		 * Workaround for not refreshing the sort.
-		 * 
-		 * TODO: better solution would to not fire this on every hover but needs to
-		 *		ensure it doesn't have edge cases. The sledge hammer approach.
-		 */
-		$(".fieldHandler, .handle").live('hover', function() {
-			userforms.update();
+		this.steps.push(step);
+	};
+
+	/**
+	 * @func UserForm.setCurrentStep
+	 * @param object step - An instance of FormStep.
+	 * @desc Sets the step the user is currently on.
+	 */
+	UserForm.prototype.setCurrentStep = function (step) {
+		// Make sure we're dealing with a form step.
+		if (!step instanceof FormStep) {
+			return;
+		}
+
+		this.currentStep = step;
+		this.currentStep.show();
+	};
+
+	/**
+	 * @func UserForm.jumpToStep
+	 * @param number stepNumber
+	 * @desc Jumps to a specific form step.
+	 */
+	UserForm.prototype.jumpToStep = function (stepNumber) {
+		var targetStep = this.steps[stepNumber];
+
+		// Make sure the target step exists.
+		if (targetStep === void 0) {
+			return;
+		}
+
+		this.currentStep.hide();
+		this.setCurrentStep(targetStep);
+
+		this.$el.trigger('userform.form.changestep', [stepNumber]);
+	};
+
+	/**
+	 * @func UserForm.nextStep
+	 * @desc Advances the form to the next step.
+	 */
+	UserForm.prototype.nextStep = function () {
+		this.jumpToStep(this.steps.indexOf(this.currentStep) + 1);
+	};
+
+	/**
+	 * @func UserForm.prevStep
+	 * @desc Goes back one step (not bound to browser history).
+	 */
+	UserForm.prototype.prevStep = function () {
+		this.jumpToStep(this.steps.indexOf(this.currentStep) - 1);
+	};
+
+	/**
+	 * @func FormStep
+	 * @constructor
+	 * @param object element
+	 * @return object - The FormStep instance.
+	 * @desc Creates a form step.
+	 */
+	function FormStep(element) {
+		var self = this;
+
+		this.$el = element instanceof jQuery ? element : $(element);
+
+		// Bind the step navigation event listeners.
+		this.$el.find('.step-button-prev').on('click', function (e) {
+			e.preventDefault();
+			self.$el.trigger('userform.step.prev');
 		});
-		
-		/**
-		 * Kick off the UserForms UI
-		 */
-		userforms.update();
-		
-		
-		$.entwine('udf', function($){
-			
-			/*-------------------- FIELD EDITOR ----------------------- */
-			
-			/**
-			 * Create a new instance of a field in the current form 
-			 * area. the type information should all be on this object
-			 */
-			$('div.FieldEditor .MenuHolder .action').entwine({
-				onclick: function(e) {
-					var theform = $("#Form_EditForm"); // edit from page
-					if ( theform.length < 1 ) theform = $("#Form_ItemEditForm"); // edit from modeladmin 
-					var form = theform,
-						length = $(".FieldInfo").length + 1, 
-						fieldType = $(this).siblings("select").val(),
-						formData = form.serialize()+'&NewID='+ length +"&Type="+ fieldType, 
-						fieldEditor = $(this).closest('.FieldEditor');
+		this.$el.find('.step-button-next').on('click', function (e) {
+			e.preventDefault();
+			self.$el.trigger('userform.step.next');
+		});
 
-					e.preventDefault();
+		this.hide();
 
-					if($("#Fields").hasClass('readonly') || !fieldType) {
-						return;
-					}
-					
-					
-					// Due to some very weird behaviout of jquery.metadata, the url have to be double quoted
-					var addURL = fieldEditor.attr('data-add-url').substr(1, fieldEditor.attr('data-add-url').length-2);
+		return this;
+	}
 
-					$.ajax({
-						headers: {"X-Pjax" : 'Partial'},
-						type: "POST",
-						url: addURL,
-						data: formData, 
-						success: function(data) {
-							$('#Fields_fields').append(data);
+	/**
+	 * @func FormStep.show
+	 * @desc Show the form step. Looks after aria attributes too.
+	 */
+	FormStep.prototype.show = function () {
+		this.$el.attr('aria-hidden', false).show();
+	};
 
-							statusMessage(userforms.message('ADDED_FIELD'));
-							
-							var name = $("#Fields_fields li.EditableFormField:last").attr("id").split(' ');
+	/**
+	 * @func FormStep.hide
+	 * @desc Hide the form step. Looks after aria attributes too.
+	 */
+	FormStep.prototype.hide = function () {
+		this.$el.attr('aria-hidden', true).hide();
+	};
 
-							$("#Fields_fields select.fieldOption").append("<option value='"+ name[2] +"'>New "+ name[2] + "</option>");
-							$("#Fields_fields").sortable('refresh');
-						},
-						error: function(e) {
-							alert(ss.i18n._t('GRIDFIELD.ERRORINTRANSACTION'));
-						}
-					});
-				}
-			});
-			
-			/**
-			 * Delete a field from the user defined form
-			 */
-			$(".EditableFormField .delete").entwine({
-				onclick: function(e) {
-					e.preventDefault();
-					
-					var text = $(this).parents("li").find(".fieldInfo .text").val();
-					
-					// Remove all the rules with relate to this field
-					$("#Fields_fields .customRules select.fieldOption option").each(function(i, element) {
-						if($(element).text() === text) {
-							// check to see if this is selected. If it is then just remove the whole rule
-							if($(element).parent('select.customRuleField').val() === $(element).val()) {
-								$(element).parents('li.customRule').remove();
-							} else {
-								// otherwise remove the option
-								$(element).remove();	
-							}
-						}
-					});
-					$(this).parents(".EditableFormField").slideUp(function(){$(this).remove()})
-				}
-			});
-			
-			/** 
-			 * Upon renaming a field we should go through and rename all the
-			 * fields in the select fields to use this new field title. We can
-			 * just worry about the title text - don't mess around with the keys
-			 */
-			$('.EditableFormField .fieldInfo .text').entwine({
-				onchange: function(e) {
-					var value = $(this).val();
-					var name = $(this).parents("li").attr("id").split(' ');
-					$("#Fields_fields select.fieldOption option").each(function(i, domElement) {
-						if($(domElement).val() === name[2]) {
-							$(domElement).text(value);	
-						}
-					});
-				}
-			});
-			
-			/**
-			 * Show the more options popdown. Or hide it if we currently have it open
-			 */
-			$(".EditableFormField .moreOptions").entwine({
-				onclick: function(e) {
-					e.preventDefault();
-					
-					var parent = $(this).parents(".EditableFormField");
-					if(!parent) {
-						return;
-					}
-					
-					var extraOptions = parent.children(".extraOptions");
-					if(!extraOptions) {
-						return;
-					}
-					
-					if(extraOptions.hasClass('hidden')) {
-						$(this).addClass("showing");
-						$(this).html('Hide options');
-						extraOptions.removeClass('hidden');
-					} else {
-						$(this).removeClass("showing");
-						$(this).html('Show options');
-						extraOptions.addClass('hidden');	
-					}
-				}
-			});
-			
-			/**
-			 * Add a suboption to a radio field or to a dropdown box for example
-			 */
-			$(".EditableFormField .addableOption").entwine({
-				onclick: function(e) {
-					e.preventDefault();
+	/**
+	 * @func ProgressBar
+	 * @constructor
+	 * @param object element
+	 * @return object - The Progress bar instance.
+	 * @desc Creates a progress bar.
+	 */
+	function ProgressBar(element) {
+		var self = this;
 
-					// Give the user some feedback
-					statusMessage(userforms.message('ADDING_OPTION'));
+		this.$el = element instanceof jQuery ? element : $(element);
+		this.$buttons = this.$el.find('.step-button-jump');
 
-					// variables
-					var options = $(this).parent("li");
-					var action = userforms.appendToURL($("#Form_EditForm").attr("action"), '/field/Fields/addoptionfield');
-					var parent = $(this).attr("rel");
-					var securityID = ($("input[name=SecurityID]").length > 0) ? $("input[name=SecurityID]").first().attr("value") : '';
+		// Update the progress bar when 'step' buttons are clicked.
+		this.$buttons.each(function (i, stepButton) {
+			$(stepButton).on('click', function (e) {
+				var newStepNumber = parseInt($(this).text(), 10);
 
-					// send ajax request to the page
-					$.ajax({
-						type: "GET",
-						url: action,
-						data: 'Parent='+ parent +'&SecurityID='+securityID,
-						// create a new field
-						success: function(msg){
-							options.before(msg);
-							statusMessage(userforms.message('ADDED_OPTION'));
-						},
+				e.preventDefault();
 
-						// error creating new field
-						error: function(request, text, error) {
-							statusMessage(userforms.message('ERROR_CREATING_OPTION'));
-						} 
-					});
-
-				}
-			});
-			
-			/**
-			 * Delete a suboption such as an dropdown option or a 
-			 * checkbox field
-			 */
-			$(".EditableFormField .deleteOption").entwine({
-				onclick: function(e) {
-					e.preventDefault();
-					
-					// pass the deleted status onto the element
-					$(this).parents("li:first").find("[type=text]:first").attr("value", "field-node-deleted");
-					$(this).parents("li:first").hide();
-
-					// Give the user some feedback
-					statusMessage(userforms.message('REMOVED_OPTION'));
-				}
-			});
-			
-			/**
-			 * Custom Rules Interface
-			 * 
-			 * Hides the input text field if the conditionOption is 'IsBlank' or 'IsNotBlank'
-			 */
-			$("select.conditionOption").entwine({
-				onchange: function() {
-					var valueInput = $(this).siblings(".ruleValue");
-					if($(this).val() && $(this).val() !== "IsBlank" && $(this).val() !== "IsNotBlank") {
-						valueInput.removeClass("hidden");
-					} else {
-						valueInput.addClass("hidden");
-					}
-				}
-			});
-
-			/**
-			 * Delete a custom rule
-			 */
-			$(".customRules .deleteCondition").entwine({
-				onclick: function(e) {
-					e.preventDefault();
-					$(this).parent("li").fadeOut().remove();
-				}
-			});
-
-			/**
-			 * Adding a custom rule to a given form
-			 */
-			$(".customRules .addCondition").entwine({
-				onclick: function(e) {
-					e.preventDefault();
-					
-					// Give the user some feedback
-					statusMessage(userforms.message('ADDING_RULE'));
-
-					// get the fields li which to duplicate
-					var currentRules = $(this).parent("li").parent("ul");
-					var defaultRule = currentRules.children("li.hidden:first");
-					var newRule = defaultRule.clone();
-
-					newRule.children(".customRuleField").each(function(i, domElement) {
-						var currentName = domElement.name.split("][");
-						currentName[3] = currentName[2];
-						currentName[2] = currentRules.children().size() + 1;
-						domElement.name = currentName.join("][");
-					});
-
-					// remove hidden tag
-					newRule.removeClass("hidden");
-
-					// update the fields dropdown
-					var optionChildren = newRule.children("select.fieldOption");
-					optionChildren.empty();
-
-					$("#Fields_fields li.EditableFormField").each(function () {
-						var name = $(this).attr("id").split(' ');
-						var option = $("<option></option>")
-							.attr('value', name[2])
-							.text($(this).find(".text").val());
-						optionChildren
-							.append(option);
-					});
-
-					// append to the list
-					currentRules.append(newRule);
-				}
+				self.update(newStepNumber);
+				self.$el.trigger('userform.progress.changestep', [newStepNumber]);
 			});
 		});
-	});
-})(jQuery);
+
+		// Update the progress bar when 'prev' and 'next' buttons are clicked.
+		$('.userform').on('userform.form.changestep', function (e, newStep) {
+			self.update(newStep + 1);
+		});
+
+		this.update(1);
+
+		return this;
+	}
+
+	/**
+	 * @func ProgressBar.update
+	 * @param number newStep
+	 * @desc Update the progress element to show a new step.
+	 */
+	ProgressBar.prototype.update = function (newStep) {
+		// Update elements that contain the current step number.
+		this.$el.find('.current-step-number').each(function (i, element) {
+			$(element).text(newStep);
+		});
+
+		// Update aria attributes.
+		this.$el.find('[aria-valuenow]').each(function (i, element) {
+			$(element).attr('aria-valuenow', newStep);
+		});
+
+		// Update the CSS classes on step buttons.
+		this.$buttons.each(function (i, element) {
+			var $item = $(element).parent();
+
+			if (parseInt($(element).text(), 10) === newStep) {
+				$item.addClass('current');
+				return;
+			}
+
+			$item.removeClass('current');
+		});
+
+		// Update the width of the progress bar.
+		this.$el.find('.progress-bar').width(newStep / this.$buttons.length * 100 + '%');
+	};
+
+	/**
+	 * @func main
+	 * @desc Bootstraps the front-end.
+	 */
+	function main() {
+		var userform = new UserForm($('.userform')),
+			progressBar = new ProgressBar($('#userform-progress'));
+
+		// Display all the things that are hidden when JavaScript is disabled.
+		$.each(['#userform-progress', '.step-navigation'], function (i, selector) {
+			$(selector).attr('aria-hidden', false).show();
+		});
+
+		// Initialise the form steps.
+		userform.$el.find('.form-step').each(function (i, element) {
+			var step = new FormStep(element);
+
+			userform.addStep(step);
+		});
+
+		userform.setCurrentStep(userform.steps[0]);
+
+		// Hide the form-wide actions on multi-step forms.
+		// Because JavaScript is enabled we'll use the actions contained
+		// in the final step's navigation.
+		if (userform.steps.length > 1) {
+			userform.$el.children('.Actions').attr('aria-hidden', true).hide();
+		}
+
+		// Make sure the form doesn't expire on the user. Pings every 3 mins.
+		setInterval(function () {
+			$.ajax({ url: 'UserDefinedForm_Controller/ping' });
+		}, 180 * 1000);
+	}
+
+	main();
+});
