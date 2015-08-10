@@ -229,6 +229,11 @@ jQuery(function ($) {
 			self.update(newStep + 1);
 		});
 
+		$('.step-buttons .step-button-jump').each(function () { 
+			var index = $(this).parent().index();
+			$(this).css({left: 'calc(' + 100 / (self.$buttons.length - 1) * index + '%' + ' - ' + '10px' });
+		});
+
 		this.update(1);
 
 		return this;
@@ -240,6 +245,8 @@ jQuery(function ($) {
 	 * @desc Update the progress element to show a new step.
 	 */
 	ProgressBar.prototype.update = function (newStep) {
+		var $newStepElement = $($('.form-step')[newStep - 1]);
+
 		// Update elements that contain the current step number.
 		this.$el.find('.current-step-number').each(function (i, element) {
 			$(element).text(newStep);
@@ -265,8 +272,11 @@ jQuery(function ($) {
 			$item.removeClass('current');
 		});
 
+		// Update the progress bar's title with the new step's title.
+		this.$el.find('.progress-title').text($newStepElement.data('title'));
+
 		// Update the width of the progress bar.
-		this.$el.find('.progress-bar').width(newStep / this.$buttons.length * 100 + '%');
+		this.$el.find('.progress-bar').width((newStep - 1) / (this.$buttons.length - 1) * 100 + '%');
 	};
 
 	/**

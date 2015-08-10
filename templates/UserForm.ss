@@ -12,8 +12,7 @@
 	<% if $Legend %><legend>$Legend</legend><% end_if %>
 
 	<% loop $FormSteps %>
-	<fieldset class="form-step">
-		<h2>$Title</h2>
+	<fieldset class="form-step" data-title="$Title">
 		<% loop $Fields %>
 		$FieldHolder
 		<% end_loop %>
