@@ -4,6 +4,8 @@ In this section:
 
 * Learn how to create and edit forms
 * Learn how to add fields to a form
+* Learn how to create a multi-page form
+* Learn how to add fieldgroups in a form
 * Learn how to view submissions
 * Learn how to set up automated emails upon form completion
 
@@ -173,6 +175,17 @@ to determine the size and the number of rows in a text field.
 **Or perhaps you'd like to add informational content to your form?**
 
 * Use [HTML Block](#html-block), with the appropriate level [Heading](#heading).
+
+
+## Creating a multi-page form
+
+To create a multi-page form, simply click the 'Add Page Break' button. 
+This will create a page break field which is used to create a new page in the form. You can drag and drop this page break to separate form fields at the desired location.
+
+
+## Adding fieldgroups 
+
+Creating fieldgroups is as simple as clicking the 'Add fieldgroup' button, this create two 'markers' which act as the beginning/end for the fieldgroup. Any fields place between these two markers will be automatically included within the fieldgroup.
 
 
 ## Viewing form submissions
